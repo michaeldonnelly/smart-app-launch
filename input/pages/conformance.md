@@ -106,6 +106,10 @@ completing the launch.
 * `permission-v1`: support for SMARTv1 scope syntax (e.g., `patient/Observation.read`)
 * `permission-v2`: support for SMARTv2 granular scope syntax (e.g., `patient/Observation.rs?category=http://terminology.hl7.org/CodeSystem/observation-category|vital-signs`)
 
+##### App State (Experimental)
+
+* `smart-app-state`: support for managing [SMART App State](./app-state.html)
+
 <br />
 
 
