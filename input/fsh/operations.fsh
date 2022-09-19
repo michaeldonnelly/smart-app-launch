@@ -12,7 +12,7 @@ Usage: #definition
 
     **See [App State capability](./app-state.html) for requirements, usage notes, and examples.**
 """
-* affectsState = true
+* affectsState = false
 * code = #smart-app-state
 * system = true
 * type = false
