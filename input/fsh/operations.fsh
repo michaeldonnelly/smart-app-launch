@@ -1,3 +1,5 @@
+Alias: $exp = http://hl7.org/fhir/StructureDefinition/capabilitystatement-expectation
+
 Instance: smart-app-state-server
 InstanceOf: CapabilityStatement
 Usage: #definition
