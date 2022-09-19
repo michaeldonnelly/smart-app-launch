@@ -19,7 +19,7 @@ The narrative documentation below provides formal requirements, usage notes, and
 
 In addition, the following conformance resources can support automated processing in FHIR R4:
 
-* [CapabilityStatement/smart-app-state-server](CapabilityStatement/smart-app-state-server.html)
+* [CapabilityStatement/smart-app-state-server](CapabilityStatement-smart-app-state-server.html)
 * [OperationDefinition/smart-app-state-query](OperationDefinition-smart-app-state-query.html)
 * [OperationDefinition/smart-app-state-modify](OperationDefinition-smart-app-state-modify.html)
 * [StructureDefinition/smart-app-state-basic](StructureDefinition-smart-app-state-basic.html)
