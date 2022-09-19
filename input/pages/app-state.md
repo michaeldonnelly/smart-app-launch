@@ -1,4 +1,4 @@
-### `smart-app-state` capability (experimental)
+### `smart-app-state` capability
 
 This experimental capabiliity allows apps to persist a small amount of
 configuration data to an EHR's FHIR server. Conformance requirements described
@@ -76,7 +76,7 @@ To create a new state item, an app POSTs a `Basic` resource where:
 5. `Basic.code.coding[]`  SHALL include exactly one app-specified Coding
 6. `Basic.extension` MAY include non-complex extensions. Extensions SHALL be limited to the `valueString` type unless the EHR's documentation establishes a broader set of allowed extension types
 
-If EHR accepts the request, the EHR the EHR SHALL persist the submitted resource including:
+If the EHR accepts the request, the EHR SHALL persist the submitted resource including:
 
 * the Coding present in `Basic.code.coding`
 * all top-level extensions present in the request
@@ -92,13 +92,21 @@ To update app state, an app follows the same process as for creation, except:
 2. `Basic.meta.versionId` SHALL be populated with the current version id
 1. `Basic.subject` and `Basic.code` SHALL NOT change from the previously-persisted values
 
-Servers SHALL return a `412 Precondition Failed` response if the `meta.versionId` does not reflect the most recent version stored in the server, or if the `Basic.subject` or `Basic.code` does not match previously-persisted value.
+EHR servers SHALL return a `412 Precondition Failed` response if the
+`meta.versionId` does not reflect the most recent version stored in the server,
+or if the `Basic.subject` or `Basic.code` does not match previously-persisted
+value.
 
 ##### Deletes
 
 To delete app state, an app follows the same process as for updates, except:
 
 1. `Basic.extension` SHALL NOT be present (this absence signals a deletion)
+
+After successfully deleting state, an app SHALL NOT submit subsequent requests
+to modify the same state by `Basic.id`. Servers SHALL process any subsequent
+requests about this `Basic.id` as a failed precondition (see
+[Updates](#updates)).
 
 
 #### Querying app state with `$smart-app-state-query`
@@ -305,7 +313,7 @@ This means the EHR tracks (e.g., in some internal, implementation-specific forma
   * modify, when the subject is the in-context app user
   * modify, when the subject is the in-context patient
 
-EHRs SHALL only associate `Coding`s with an app if the app is trusted to access those data. These decisions can be made out-of-band during or after the app registration proecss. A recommended default is to allow apps to register only `Codings` where the `system` matches the app's verified origin. For instance, if the EHR has verified that the app developer manages the origin `https://app.example.org`, the app could be associated with SMART App State types like `https://app.example.org|user-preferences` or `https://app.exmample.org|phr-keys`. If an app requires access to other App State types, these could be reviewed through an out-of-band process. This situation is expected when one developer supplies a patient-facing app and another developer supplies a provider-facing "companion app" that needs to query state written by the patient-facing app.
+EHRs SHALL only associate `Coding`s with an app if the app is trusted to access those data. These decisions can be made out-of-band during or after the app registration process. A recommended default is to allow apps to register only `Codings` where the `system` matches the app's verified origin. For instance, if the EHR has verified that the app developer manages the origin `https://app.example.org`, the app could be associated with SMART App State types like `https://app.example.org|user-preferences` or `https://app.exmample.org|phr-keys`. If an app requires access to other App State types, these could be reviewed through an out-of-band process. This situation is expected when one developer supplies a patient-facing app and another developer supplies a provider-facing "companion app" that needs to query state written by the patient-facing app.
 
 Where appropriate, the EHR MAY expose these controls using SMART scopes as follows.
 

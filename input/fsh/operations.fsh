@@ -12,6 +12,7 @@ Usage: #definition
 
     **See [App State capability](./app-state.html) for requirements, usage notes, and examples.**
 """
+* affectsState = true
 * code = #smart-app-state
 * system = true
 * type = false
@@ -52,7 +53,7 @@ Usage: #definition
 
     **See [App State capability](./app-state.html) for requirements, usage notes, and examples.**
 """
-
+* affectsState = true
 * code = #smart-app-state
 * system = true
 * type = false
