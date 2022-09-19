@@ -1,6 +1,6 @@
 ### `smart-app-state` capability
 
-This experimental capabiliity allows apps to persist a small amount of
+This experimental capability allows apps to persist a small amount of
 configuration data to an EHR's FHIR server. Conformance requirements described
 below apply only to software that implements support for this capability.
 Example use cases include:
