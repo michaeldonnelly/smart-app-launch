@@ -367,16 +367,19 @@ identified requirements that led us to an Operations-based design:
   information is `/Basic` (e.g., for `POST /Basic`), since non-App-State CRUD operations
   on `Basic` would use this same path.
 
-* Ensure that requests can be authorized based on the access token and request
-  content alone, without having to retrieve resources from a data store. For example,
-  each request to modify app state includes the subject and code associated with the
-  state, and these values are not allowed to change across updates for a given state object.
-  By comparing these values against the context in the supplied access token,
-  an access control decision can be made prior to retrieving the current
-  contents of a given state object.
-
 * Ensure that App State can be persisted separately from other `Basic`
   resources managed by the EHR. This stems from the fact that App State is
   essentially opaque to the EHR and should not be returned in general-purpose
   queries for `Basic` content (which may be used to surface first-class EHR
   concepts).
+
+* Ensure that requests can be authorized "statically", i.e. based on the
+  access token and request content alone, prior to retrieving resources
+  from a data store. For example, authorizing a CRUD request like
+  `GET /Basic/123` would require retrieving the resource from the data
+  store before being able to evaluate its subject and coding against the
+  access token context. By including the subject and coding in all query
+  and modify requests (and by ensuring these values can never change across
+  updates for a given state object), we allow servers to compare these values
+  against the context in the supplied access token before retrieving resources
+  from a data store.
