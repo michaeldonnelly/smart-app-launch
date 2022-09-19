@@ -10,3 +10,6 @@ Description: """
 * subject.reference 1..1
 * code.coding 1..1
 * extension.value[x] only string
+
+Alias: $exp = http://hl7.org/fhir/StructureDefinition/capabilitystatement-expectation
+

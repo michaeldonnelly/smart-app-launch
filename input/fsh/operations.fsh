@@ -1,8 +1,30 @@
+Instance: smart-app-state-server
+InstanceOf: CapabilityStatement
+Usage: #definition
+* url = "http://hl7.org/fhir/smart-app-launch/CapabilityStatement/smart-app-state-server"
+* name = "AppStateServerCapabilityStatement"
+* title = "App State Server CapabilityStatement"
+* status = #active
+* format = #json
+* date = "2022-09-19"
+* kind = #requirements
+* description = "Required capabilities for App State Server"
+* fhirVersion = #4.0.1
+* rest.mode = #server
+* rest.operation[+].name = "smart-app-state-query"
+* rest.operation[=].definition = "http://hl7.org/fhir/smart-app-launch/OperationDefinition/smart-app-state-query"
+* rest.operation[=].extension[0].url = $exp
+* rest.operation[=].extension[0].valueCode = #SHALL
+* rest.operation[+].name = "smart-app-state-modify"
+* rest.operation[=].definition = "http://hl7.org/fhir/smart-app-launch/OperationDefinition/smart-app-state-modify"
+* rest.operation[=].extension[0].url = $exp
+* rest.operation[=].extension[0].valueCode = #SHALL
+
+
 Instance: smart-app-state-query
 InstanceOf: OperationDefinition
 Usage: #definition
 * url = "http://hl7.org/fhir/smart-app-launch/OperationDefinition/smart-app-state-query"
-* version = "4.0.1"
 * name = "SMARTAppStateQuery"
 * title = "SMART App State Query"
 * status = #active
@@ -43,7 +65,6 @@ Instance: smart-app-state-modify
 InstanceOf: OperationDefinition
 Usage: #definition
 * url = "http://hl7.org/fhir/smart-app-launch/OperationDefinition/smart-app-state-modify"
-* version = "4.0.1"
 * name = "SMARTAppStateModify"
 * title = "SMART App State Modify"
 * status = #active
