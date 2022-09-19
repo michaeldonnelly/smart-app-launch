@@ -359,13 +359,21 @@ In the case of user-facing authorization interactions (e.g., for a patient-facin
 Implementers may wonder why the SMART App State capability uses FHIR Operations
 instead of FHIR's built-in FHIR REST API (e.g., using CRUD operations on the
 `Basic` resource). During the design and prototype phase, implementers
-identified two requirements that led us to an Operations-based design:
+identified requirements that led us to an Operations-based design:
 
 * Ensure that EHRs can identify App State requests via path-based HTTP request
   evaluation. This allows EHRs to route App State requests to a purpose-built
   underlying service. Such identification is not possible when the only path
   information is `/Basic` (e.g., for `POST /Basic`), since non-App-State CRUD operations
   on `Basic` would use this same path.
+
+* Ensure that requests can be authorized based on the access token and request
+  content alone, without having to retrieve resources from a data store. For example,
+  each request to modify app state includes the subject and code associated with the
+  state, and these values are not allowed to change across updates for a given state object.
+  By comparing these values against the context in the supplied access token,
+  an access control decision can be made prior to retrieving the current
+  contents of a given state object.
 
 * Ensure that App State can be persisted separately from other `Basic`
   resources managed by the EHR. This stems from the fact that App State is
