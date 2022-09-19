@@ -371,13 +371,11 @@ identified requirements that led us to an Operations-based design:
   queries for `Basic` content (which may be used to surface first-class EHR
   concepts).
 
-* Ensure that requests can be authorized "statically", i.e. based on the
-  access token and request content alone, prior to retrieving resources
-  from a data store. For example, authorizing a CRUD request like
-  `GET /Basic/123` would require retrieving the resource from the data
-  store before being able to evaluate its subject and coding against the
-  access token context. By including the subject and coding in all query
-  and modify requests (and by ensuring these values can never change across
-  updates for a given state object), we allow servers to compare these values
-  against the context in the supplied access token before retrieving resources
-  from a data store.
+* Ensure that requests can be authorized "statically", i.e. based on the access
+  token and request content alone, prior to querying a data store. For example,
+  authorizing a CRUD request like `GET /Basic/123` would require querying the
+  data store to evaluate its subject and coding against the access token
+  context. By including the subject and coding in all query and modify requests
+  (and by ensuring these values can never change across updates for a given
+  state object), we allow servers to compare these values against the context
+  in the supplied access token before querying a data store.
