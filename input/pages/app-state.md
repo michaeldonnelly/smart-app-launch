@@ -46,7 +46,26 @@ Notes](#design-notes)).
 The EHR's "App State FHIR endpoint" is defined as:
 
 1. The value in `smart_app_state_endpoint`, if present
-2. The EHR's primary FHIR endpoint, otherwise
+2. The EHR's primary FHIR endpoint, otherwise$smart-app-state-modify
+
+
+#### Example discovery document
+
+Assume a FHIR server with base URL `https://ehr.example.org/fhir`.
+
+The discovery document at
+`https://ehr.example.org/fhir/.well-known/smart-configuration` might include:
+
+```js
+{
+  "capabilities": [
+    "smart-app-state",
+    // <other capabilities snipped>
+  ],
+  smart_app_state_endpoint: "https://ehr.example.org/appstate/fhir"
+  // <other properties snipped>
+}
+```
 
 ### App State Interactions
 
@@ -203,6 +222,7 @@ Authorization: Bearer <snipped>
 The API response populates `id` and `meta.versionId`, like:
 
 ```
+Location: https://ehr.example.org/appstate/fhir/Basic/1000
 ETag: W/"a"
 ```
 
@@ -269,6 +289,7 @@ object as it has been persisted. The API response populates `id` and
 `meta.versionId`, like:
 
 ```
+Location: https://ehr.example.org/appstate/fhir/Basic/1001
 ETag: W/"a"
 ```
 
@@ -401,8 +422,8 @@ Where appropriate, the EHR MAY expose these controls using SMART scopes as follo
 
 An app writing user-specific state (e.g., user preferences) or writing patient-specific state on behalf of an authorized user can request SMART scopes like:
 
-    user/$smart-app-state-query
-    user/$smart-app-state-modify
+    user/Basic.s // query for state
+    user/Basic.cud // modify state
     
 This scope would allow the app to manage any app state that the user is permitted to manage. Note that without further refinement, this scope could allow an app to see and manage app state from *other apps* in addition to its own. This can be a useful behavior in scenarios where sets of apps have a mutual understanding of certain state values (e.g. a suite of apps offered by a single developer). 
 
@@ -411,26 +432,43 @@ This scope would allow the app to manage any app state that the user is permitte
 An app writing patient-specific state (e.g., access keys for an externally managed encryted data set) can request a SMART scope like:
 
 
-    patient/$smart-app-state-query
-    patient/$smart-app-state-modify
+    patient/Basic.s // query for state
+    patient/Basic.cud // modify state
     
-This scope would allow the app to manage any app state that the user is permitted to manage on the in-context patient record. Note that without further refinement, this scope could allow an app to see and manage app state from *other apps* in addition to its own. This can be a useful behavior in scenarios where sets of apps have a mutual understanding of certain state values (e.g., a patient-facing mobile app that creates an encrypted data payload and a provider-facing "companion app" that decrypts and displays the data set within the EHR). 
+This scope would allow the app to manage any app state that the user is
+permitted to manage on the in-context patient record. Note that without further
+refinement, this scope could allow an app to see and manage app state written
+by *other apps*. This can be a useful behavior in scenarios where sets of apps
+have a mutual understanding of certain state values (e.g., a patient-facing
+mobile app that creates an encrypted data payload and a provider-facing
+"companion app" that decrypts and displays the data set within the EHR). 
 
-For the scenario of a patient-facing mobile app that works in tandem with provider-facing "companion app" in the EHR, scopes can be narrowed to better reflect minimum necessary access (note the use of more specific codes):
+For the scenario of a patient-facing mobile app that works in tandem with
+provider-facing "companion app" in the EHR, scopes can be narrowed to better
+reflect minimum necessary access (note the use of more specific codes).
 
 ##### Patient-facing mobile app
 
-    patient/$smart-app-state-query?code=https://myapp.example.org|encrypted-phr-access-keys
-    patient/$smart-app-state-modify?code=https://myapp.example.org|encrypted-phr-access-keys
+    patient/Basic.s?code=https://myapp.example.org|encrypted-phr-access-keys
+    patient/Basic.cud?code=https://myapp.example.org|encrypted-phr-access-keys
 
 ##### Provider-facing "companion app" in the EHR
 
-    patient/$smart-app-state-query?code=https://myapp.example.org|encrypted-phr-access-keys
+    patient/Basic.s?code=https://myapp.example.org|encrypted-phr-access-keys
 
 
 #### Explaining access controls to end users
 
-In the case of user-facing authorization interactions (e.g., for a patient-facing SMART App), it's important to ensure that such scopes can be explained in plain language. EHRs may need to gather additional information from app developers at registration time with explanations, or may apply additional protections to facilitate access control decisions. For example, an EHR might partition app state management for each patient-facing app, to ensure that no patient-facing app is allowed to read another app's data; and with this sort of limitation in place, app state scopes might not require any specific review or user approval, or might use generic langauge like "store and manage its own data".
+In the case of user-facing authorization interactions (e.g., for a
+patient-facing SMART App), it's important to ensure that such scopes can be
+explained in plain language. EHRs may need to gather additional information
+from app developers at registration time with explanations, or may apply
+additional protections to facilitate access control decisions. For example, an
+EHR might partition app state management for each patient-facing app, to ensure
+that no patient-facing app is allowed to read another app's data; and with this
+sort of limitation in place, app state scopes might not require any specific
+review or user approval, or might use generic langauge like "store and manage
+its own data".
 
 ### Design Notes
 
