@@ -5,13 +5,23 @@ configuration data to an EHR's FHIR server. Conformance requirements described
 below apply only to software that implements support for this capability.
 Example use cases include:
 
-* App with no backend storage persists user preferences such as default screens, shortcuts, or color preferences. Such apps can save preferences to the EHR and retrieve them on subsequent launches.
+* App with no backend storage persists user preferences such as default
+  screens, shortcuts, or color preferences. Such apps can save preferences to
+  the EHR and retrieve them on subsequent launches.
 
-* App maintains encrypted external data sets. Such apps can persist access keys to the EHR and retrieve them on subsequent launches, allowing in-app decryption and display of external data sets.
+* App maintains encrypted external data sets. Such apps can persist access keys
+  to the EHR and retrieve them on subsequent launches, allowing in-app
+  decryption and display of external data sets.
 
-**Apps SHALL NOT use `smart-app-state` when data being persisted could be managed directly using FHIR domain models.** For example, an app would never persist clinical diagnoses or observations using `smart-app-state`. Such usage is prohibited because the standard FHIR API provides safer and more interoperable mechanisms for clinical data sharing.
+**Apps SHALL NOT use `smart-app-state` when data being persisted could be
+managed directly using FHIR domain models.** For example, an app would never
+persist clinical diagnoses or observations using `smart-app-state`. Such usage
+is prohibited because the standard FHIR API provides safer and more
+interoperable mechanisms for clinical data sharing.
 
-**Apps SHALL NOT expect the EHR to use or interpret data stored via `smart-app-state`**  unless specific agreements are made outside the scope of this capability.
+**Apps SHALL NOT expect the EHR to use or interpret data stored via
+`smart-app-state`**  unless specific agreements are made outside the scope of
+this capability.
 
 ### Formal definitions
 
@@ -20,113 +30,132 @@ The narrative documentation below provides formal requirements, usage notes, and
 In addition, the following conformance resources can support automated processing in FHIR R4:
 
 * [CapabilityStatement/smart-app-state-server](CapabilityStatement-smart-app-state-server.html)
-* [OperationDefinition/smart-app-state-query](OperationDefinition-smart-app-state-query.html)
-* [OperationDefinition/smart-app-state-modify](OperationDefinition-smart-app-state-modify.html)
 * [StructureDefinition/smart-app-state-basic](StructureDefinition-smart-app-state-basic.html)
 
 ### Discovery
 
-EHRs supporting this capability SHALL advertise support by including `"smart-app-state"` in the capabilities array of their FHIR server's `.well-known/smart-configuration` file (see [Conformance](conformance.html)).
+EHRs supporting this capability SHALL advertise support by including
+`"smart-app-state"` in the capabilities array of their FHIR server's
+`.well-known/smart-configuration` file (see [Conformance](conformance.html)).
 
-EHRs supporting this capability SHALL include the `$smart-app-state-query` and `$smart-app-state-modify`  operations in their FHIR server's CapabilityStatement at `/metadata` by including at least the
-following content:
+EHRs supporting this capability MAY include a `smart_app_state_endpoint`
+property if they want to maintain App State management functionality at a
+location distinct form the core EHR's FHIR endpoint (see [Design
+Notes](#design-notes)).
 
-```js
-{
-  "resourceType": "CapabilityStatement",
-  "rest": [{
-    "operation": [{
-      "name": "smart-app-state-query",
-      "definition": "http://hl7.org/fhir/smart-app-launch/OperationDefinition/smart-app-state-query"
-    }, {
-      "name": "smart-app-state-modify",
-      "definition": "http://hl7.org/fhir/smart-app-launch/OperationDefinition/smart-app-state-modify"
-    }]
-  }]
-}
-```
+The EHR's "App State FHIR endpoint" is defined as:
+
+1. The value in `smart_app_state_endpoint`, if present
+2. The EHR's primary FHIR endpoint, otherwise
+
+### App State Interactions
+
+The EHR's App State FHIR endpoint SHALL provide support for:
+
+2. `POST /Basic` requiring the presence of `If-Match` to prevent contention
+2. `PUT /Basic/[id]` requiring the presence of `If-Match` to prevent contention
+2. `DELETE /Basic/[id]` requiring the presence of `If-Match` to prevent contention
+1. `GET /Basic?subject={}&code={}`
 
 ### Managing app state (CRUDS)
 
-App State data can include details like encryption keys. EHRs SHALL evaluate storage requirements and MAY store App State data separately from their routine FHIR Resource storage space. 
+App State data can include details like encryption keys. EHRs SHALL evaluate
+storage requirements and MAY store App State data separately from their routine
+FHIR Resource storage space. 
 
-EHRs SHALL allow at least one `smart-app-state` resource per subject per authorized app. EHRs SHOULD describe applicable limits in their developer documentation.
+EHRs SHALL allow at least one `smart-app-state` resource per subject per
+authorized app. EHRs SHOULD describe applicable limits in their developer
+documentation.
 
-EHRs SHOULD retain app state data for as long as the originating app remains actively registered with the EHR. EHRs MAY establish additional retention policies in their developer documentation.
-
-#### Modifying app state with `$smart-app-state-modify`
-
-An app can **create, update, or delete** app state via:
-
-* `POST /$smart-app-state-modify`
-
-The request is a FHIR `Basic` resource representing the client-supplied state, and the
-response is a `Basic` resource representing the state persisted by the EHR (details below).
+EHRs SHOULD retain app state data for as long as the originating app remains
+actively registered with the EHR. EHRs MAY establish additional retention
+policies in their developer documentation.
 
 ##### Create
 
-To create a new state item, an app POSTs a `Basic` resource where:
+To create app state, an app submits to the EHR's App State endpoint:
 
-1. Total resource size as serialized in the JSON POST body SHALL NOT exceed 256KB unless the EHR's documentation establishes a higher limit
+    POST /Basic/[id]
+
+The request body is a `Basic` resource to `/Basic` where:
+
+1. Total resource size as serialized in the POST body SHALL NOT exceed 256KB unless the EHR's documentation establishes a higher limit
 2. `Basic.id` SHALL NOT be included
 2. `Basic.meta.versionId` SHALL NOT be included
-3. `Basic.subject.reference` SHALL be a relative reference to a  Patient, Practitioner, PractitionerRole, RelatedPerson, or Person
+3. `Basic.subject.reference` SHALL be an absolute reference to a resource in the EHR's primary FHIR server. The EHR SHALL support at least Patient, Practitioner, PractitionerRole, RelatedPerson, Person. The EHR's documentation MAY establish support for a broader set of resources.
 5. `Basic.code.coding[]`  SHALL include exactly one app-specified Coding
 6. `Basic.extension` MAY include non-complex extensions. Extensions SHALL be limited to the `valueString` type unless the EHR's documentation establishes a broader set of allowed extension types
 
 If the EHR accepts the request, the EHR SHALL persist the submitted resource including:
 
+* a newly generated server-side unique value in populated in `Basic.id`
+* the Reference present in `Basic.subject`
 * the Coding present in `Basic.code.coding`
 * all top-level extensions present in the request
-* a newly generated server-side unique value in populated in `Basic.id`
 
 If the EHR cannot meet all of these obligations, it SHALL reject the request.
 
+The response headers include an `ETag` header following [FHIR Core "Managing Resource
+Contention"](https://hl7.org/fhir/http.html#concurrency).
+
+The response body is a `Basic` resource representing the state persisted by the EHR (details below).
+
 ##### Updates
 
-To update app state, an app follows the same process as for creation, except:
+To update app state, an app submits to the EHR's App State endpoint:
 
-1. `Basic.id` SHALL be present, to identify the resource to replace
-2. `Basic.meta.versionId` SHALL be populated with the current version id
-1. `Basic.subject` and `Basic.code` SHALL NOT change from the previously-persisted values
+    PUT /Basic/[id]
 
-EHR servers SHALL return a `412 Precondition Failed` response if the
-`meta.versionId` does not reflect the most recent version stored in the server,
-or if the `Basic.subject` or `Basic.code` does not match previously-persisted
-value.
+The request SHALL include an `If-Match` header with an ETag to prevent
+contention as defined in [FHIR Core "Managing Resource
+Contention"](https://hl7.org/fhir/http.html#concurrency).
+
+The payload is a `Basic` resource where:
+
+1. `Basic.id` SHALL be present, matching the `[id]` in the request URL
+3. `Basic.subject` and `Basic.code` SHALL NOT change from the previously-persisted values
+
+EHR servers SHALL return a `412 Precondition Failed` response if the version
+specified in `If-Match` header's ETag does not reflect the most recent version
+stored in the server, or if the `Basic.subject` or `Basic.code` does not match
+previously-persisted value.
+
+The successful response headers include an `ETag` header following [FHIR Core "Managing Resource
+Contention"](https://hl7.org/fhir/http.html#concurrency).
+
+The response body is a `Basic` resource representing the state persisted by the EHR (details below).
 
 ##### Deletes
 
-To delete app state, an app follows the same process as for updates, except:
+To delete app state, an app submits to the EHR's App State endpoint:
 
-1. `Basic.extension` SHALL NOT be present (this absence signals a deletion)
+    DELETE /Basic/[id]
+
+The request SHALL include an `If-Match` header with an ETag to prevent
+contention as defined in [FHIR Core "Managing Resource
+Contention"](https://hl7.org/fhir/http.html#concurrency).
+
+EHR servers SHALL return a `412 Precondition Failed` response if the version
+specified in `If-Match` header's ETag does not reflect the most recent version
+stored in the server.
 
 After successfully deleting state, an app SHALL NOT submit subsequent requests
 to modify the same state by `Basic.id`. Servers SHALL process any subsequent
-requests about this `Basic.id` as a failed precondition (see
-[Updates](#updates)).
+requests about this `Basic.id` as a failed precondition.
 
 
-#### Querying app state with `$smart-app-state-query`
+#### Querying app state
 
 An app can query for app state via:
 
-* `GET /$smart-app-state-query?subject={}&code={}`
+* `GET /Basic?subject={}&code={}`
 
 The EHR SHALL support the following query parameters:
 
-* `?subject` behaves like the `subject` search parameter on `Basic`, restricted to relative references that exactly match `Basic.subject.reference`
-* `?code` behaves like the `code` search parameter on `Basic`, restricted to fixed codings that exactly match `Basic.code.coding[0]` (i.e., `${system}` + `|` + `${code}`)
+* `?subject`, restricted to absolute references that exactly match `Basic.subject.reference`
+* `?code` , restricted to fixed codings that exactly match `Basic.code.coding[0]` (i.e., `${system}` + `|` + `${code}`)
 
-The response is a FHIR Bundle where each entry is a `Basic` resource as persisted by the EHR.
-
-####  Managing Contention in `$smart-app-state-modify`
-
-As described above, servers SHALL treat update and delete requests as conditional, rejecting queries that do not refer to the most recent `Basic.meta.versionId`. To summarize the design:
-
-* Servers populate `Basic.meta.versionId` in all returned resources
-* Clients include this value in the `POST` body when updating or deleting via `$smart-app-state-modify`
-* Servers return a `412 Precondition Failed` response if the client-supplied value does not reflect the current version
+The response body is a FHIR Bundle where each entry is a `Basic` resource as persisted by the EHR.
 
 ### API Examples
 
@@ -134,14 +163,15 @@ As described above, servers SHALL treat update and delete requests as conditiona
 
 The following example `POST` body shows how an app might persist a user's app-specific preferences:
 
-
 ```
-POST /$smart-app-state-modify
+POST /Basic
+
+Authorization: Bearer <snipped>
 ```
 ```js
 {
   "resourceType": "Basic",
-  "subject": {"reference": "Practitioner/123"},
+  "subject": {"reference": "https://ehr.example.org/fhir/Practitioner/123"},
   "code": {
     "coding": [
       // app-specific designation; the EHR does not need to understand
@@ -167,21 +197,28 @@ POST /$smart-app-state-modify
 
 The API response populates `id` and `meta.versionId`, like:
 
+```
+ETag: W/"a"
+```
+
 ```js
 {
   "resourceType": "Basic",
   "id": "1000",
   "meta": {"versionId": "a"},
-  "subject": {"reference": "Practitioner/123"},
+  "subject": {"reference": "https://ehr.example.org/fhir/Practitioner/123"},
   ...<snipped for brevity>
 ```
 
 To query for these data, an app could invoke the following operation (newlines added for clarity):
 
+```
+GET /Basic
+  subject=https://ehr.example.org/fhir/Practitioner/123&
+  code=https://myapp.example.org|display-preferences
 
-    GET /$smart-app-state-query?
-      subject=Practitioner/123&
-      code=https://myapp.example.org|display-preferences
+Authorization: Bearer <snipped>
+```
 
 ... which returns a Bundle including the "Example 1" payload.
 
@@ -190,12 +227,15 @@ To query for these data, an app could invoke the following operation (newlines a
 The following `POST` body shows how an app might persist access keys for an externally managed encrypted data set:
 
 ```
-POST /$smart-app-state-modify
+POST /Basic
+
+Authorization: Bearer <snipped>
 ```
+
 ```js
 {
   "resourceType": "Basic",
-  "subject": {"reference": "Patient/123"},
+  "subject": {"reference": "https://ehr.example.org/fhir/Patient/123"},
   "code": {
     "coding": [
       // app-specific designation; the EHR does not need to understand
@@ -219,14 +259,20 @@ POST /$smart-app-state-modify
 }
 ```
 
-The EHR responds with a Basic resource representing the new SMART App State object as it has been persisted.  The API response populates `id` and `meta.versionId`, like:
+The EHR responds with a Basic resource representing the new SMART App State
+object as it has been persisted. The API response populates `id` and
+`meta.versionId`, like:
+
+```
+ETag: W/"a"
+```
 
 ```js
 {
   "resourceType": "Basic",
   "id": "1001",
   "meta": {"versionId": "a"},
-  "subject": {"reference": "Practitioner/123"},
+  "subject": {"reference": "https://ehr.example.org/fhir/Practitioner/123"},
   ...<snipped for brevity>
 ```
 
@@ -236,14 +282,17 @@ The following `POST` body shows how an app might update persisted access keys fo
 
 
 ```
-POST /$smart-app-state-modify
+PUT /Basic/1001
+
+Authorization: Bearer <snipped>
+If-Match: W/"a"
 ```
+
 ```js
 {
   "resourceType": "Basic",
   "id": "1001",
-  "meta": {"versionId": "a"},
-  "subject": {"reference": "Patient/123"},
+  "subject": {"reference": "https://ehr.example.org/fhir/Patient/123"},
   "code": {
     "coding": [
       { 
@@ -278,13 +327,16 @@ The following `POST` body shows how an app might delete persisted access keys fo
 
 
 ```
-POST /$smart-app-state-modify
+DELETE /Basic/1001
+
+Authorization: Bearer <snipped>
+If-Match: W/"b"
 ```
+
 ```js
 {
   "resourceType": "Basic",
   "id": "1001",
-  "meta": {"versionId": "b"},
   "subject": {"reference": "Patient/123"},
   "code": {
     "coding": [
@@ -301,20 +353,42 @@ The EHR responds with a `200 OK` or `204 No Content` message to indicate a succe
 
 ### Security and Access controls
 
-Apps SHALL NOT use data from `Extension.valueString` without validating or sanitizing the data first. In other words, app developers need to consider a threat model where App State values have been populated with arbitrary content. (Note that EHRs are expected to simply store and return such data unmodified, without "using" the data.)
 
-The EHR SHALL enforce access controls to ensure that only authorized apps are able to perform the FHIR interactions described above. From the app's perspective, these operations are invoked using a SMART on FHIR access token in an Authorization header.
+Apps SHALL NOT use data from `Extension.valueString` without validating or
+sanitizing the data first. In other words, app developers need to consider a
+threat model where App State values have been populated with arbitrary content.
+(Note that EHRs are expected to simply store and return such data unmodified,
+without "using" the data.)
 
-This means the EHR tracks (e.g., in some internal, implementation-specific format) four sets of `Coding`s representing the SMART App State types (i.e., `Basic.code.coding`) that the app is allowed to
+The EHR SHALL enforce access controls to ensure that only authorized apps are
+able to perform the FHIR interactions described above. From the app's
+perspective, these operations are invoked using a SMART on FHIR access token in
+an Authorization header. Every App State request SHALL include an Authorization
+header with an access token issued by the EHR's authorization server. 
+
+This means the EHR tracks (e.g., in some internal, implementation-specific
+format) four sets of `Coding`s representing the SMART App State types (i.e.,
+`Basic.code.coding`) that the app is allowed to
+
   * query, when the subject is the in-context app user
   * query, when the subject is the in-context patient
   * modify, when the subject is the in-context app user
   * modify, when the subject is the in-context patient
 
-EHRs SHALL only associate `Coding`s with an app if the app is trusted to access those data. These decisions can be made out-of-band during or after the app registration process. A recommended default is to allow apps to register only `Codings` where the `system` matches the app's verified origin. For instance, if the EHR has verified that the app developer manages the origin `https://app.example.org`, the app could be associated with SMART App State types like `https://app.example.org|user-preferences` or `https://app.exmample.org|phr-keys`. If an app requires access to other App State types, these could be reviewed through an out-of-band process. This situation is expected when one developer supplies a patient-facing app and another developer supplies a provider-facing "companion app" that needs to query state written by the patient-facing app.
+EHRs SHALL only associate `Coding`s with an app if the app is trusted to access
+those data. These decisions can be made out-of-band during or after the app
+registration process. A recommended default is to allow apps to register only
+`Codings` where the `system` matches the app's verified origin. For instance,
+if the EHR has verified that the app developer manages the origin
+`https://app.example.org`, the app could be associated with SMART App State
+types like `https://app.example.org|user-preferences` or
+`https://app.exmample.org|phr-keys`. If an app requires access to other App
+State types, these could be reviewed through an out-of-band process. This
+situation is expected when one developer supplies a patient-facing app and
+another developer supplies a provider-facing "companion app" that needs to
+query state written by the patient-facing app.
 
 Where appropriate, the EHR MAY expose these controls using SMART scopes as follows.
-
 
 #### Granting access at the user level
 
@@ -339,7 +413,6 @@ For the scenario of a patient-facing mobile app that works in tandem with provid
 
 ##### Patient-facing mobile app
 
-
     patient/$smart-app-state-query?code=https://myapp.example.org|encrypted-phr-access-keys
     patient/$smart-app-state-modify?code=https://myapp.example.org|encrypted-phr-access-keys
 
@@ -354,16 +427,18 @@ In the case of user-facing authorization interactions (e.g., for a patient-facin
 
 ### Design Notes
 
-Implementers may wonder why the SMART App State capability uses FHIR Operations
-instead of FHIR's built-in FHIR REST API (e.g., using CRUD operations on the
-`Basic` resource). During the design and prototype phase, implementers
-identified requirements that led us to an Operations-based design:
+Implementers may wonder why the SMART App State capability defines a FHIR Base
+URL that might be distinct from the EHR's main FHIR base URL. During the design
+and prototype phase, implementers identified requirements that led to this
+design:
 
 * Ensure that EHRs can identify App State requests via path-based HTTP request
   evaluation. This allows EHRs to route App State requests to a purpose-built
   underlying service. Such identification is not possible when the only path
-  information is `/Basic` (e.g., for `POST /Basic`), since non-App-State CRUD operations
-  on `Basic` would use this same path.
+  information is `/Basic` (e.g., for `POST /Basic` on the EHR's main FHIR
+  endpoint), since non-App-State CRUD operations on `Basic` would use this same
+  path. Providing the option for a distinct FHIR base URL allows EHRs to
+  establish predictable and distint paths when this is desirable.
 
 * Ensure that App State can be persisted separately from other `Basic`
   resources managed by the EHR. This stems from the fact that App State is
@@ -371,11 +446,11 @@ identified requirements that led us to an Operations-based design:
   queries for `Basic` content (which may be used to surface first-class EHR
   concepts).
 
+
+One design goal could not be met with the core FHIR REST API:
+
 * Ensure that requests can be authorized "statically", i.e. based on the access
   token and request content alone, prior to querying a data store. For example,
   authorizing a CRUD request like `GET /Basic/123` would require querying the
   data store to evaluate its subject and coding against the access token
-  context. By including the subject and coding in all query and modify requests
-  (and by ensuring these values can never change across updates for a given
-  state object), we allow servers to compare these values against the context
-  in the supplied access token before querying a data store.
+  context.
