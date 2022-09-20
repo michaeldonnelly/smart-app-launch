@@ -55,6 +55,7 @@ The EHR's App State FHIR endpoint SHALL provide support for:
 2. `POST /Basic` requiring the presence of `If-Match` to prevent contention
 2. `PUT /Basic/[id]` requiring the presence of `If-Match` to prevent contention
 2. `DELETE /Basic/[id]` requiring the presence of `If-Match` to prevent contention
+1. `GET /Basic?code={}`
 1. `GET /Basic?subject={}&code={}`
 
 ### Managing app state (CRUDS)
@@ -63,9 +64,12 @@ App State data can include details like encryption keys. EHRs SHALL evaluate
 storage requirements and MAY store App State data separately from their routine
 FHIR Resource storage space. 
 
-EHRs SHALL allow at least one `smart-app-state` resource per subject per
-authorized app. EHRs SHOULD describe applicable limits in their developer
-documentation.
+App State is always assoiated with a "state code" (`Basic.code.coding`) and
+optionally associated with a subject (`Basic.subject`).
+
+EHRs SHALL allow at least one `smart-app-state` resource per state code, and at
+least one `smart-app-state` resource per (state code, subject) tuple. EHRs
+SHOULD describe applicable limits in their developer documentation.
 
 EHRs SHOULD retain app state data for as long as the originating app remains
 actively registered with the EHR. EHRs MAY establish additional retention
@@ -82,14 +86,14 @@ The request body is a `Basic` resource to `/Basic` where:
 1. Total resource size as serialized in the POST body SHALL NOT exceed 256KB unless the EHR's documentation establishes a higher limit
 2. `Basic.id` SHALL NOT be included
 2. `Basic.meta.versionId` SHALL NOT be included
-3. `Basic.subject.reference` SHALL be an absolute reference to a resource in the EHR's primary FHIR server. The EHR SHALL support at least Patient, Practitioner, PractitionerRole, RelatedPerson, Person. The EHR's documentation MAY establish support for a broader set of resources.
+3. `Basic.subject.reference` is optional. When omitted, global configuration can be stored in App State. When present, this SHALL be an absolute reference to a resource in the EHR's primary FHIR server. The EHR SHALL support at least Patient, Practitioner, PractitionerRole, RelatedPerson, Person. The EHR's documentation MAY establish support for a broader set of resources.
 5. `Basic.code.coding[]`  SHALL include exactly one app-specified Coding
 6. `Basic.extension` MAY include non-complex extensions. Extensions SHALL be limited to the `valueString` type unless the EHR's documentation establishes a broader set of allowed extension types
 
 If the EHR accepts the request, the EHR SHALL persist the submitted resource including:
 
 * a newly generated server-side unique value in populated in `Basic.id`
-* the Reference present in `Basic.subject`
+* the Reference present in `Basic.subject`, if any
 * the Coding present in `Basic.code.coding`
 * all top-level extensions present in the request
 
@@ -148,12 +152,13 @@ requests about this `Basic.id` as a failed precondition.
 
 An app can query for app state via:
 
-* `GET /Basic?subject={}&code={}`
+* `GET /Basic?subject={}&code={}` for state associated with a specific subject
+* `GET /Basic?code={}` for global state associated with the app overall
 
 The EHR SHALL support the following query parameters:
 
 * `?subject`, restricted to absolute references that exactly match `Basic.subject.reference`
-* `?code` , restricted to fixed codings that exactly match `Basic.code.coding[0]` (i.e., `${system}` + `|` + `${code}`)
+* `?code` , restricted to fixed state codes that exactly match `Basic.code.coding[0]` (i.e., `${system}` + `|` + `${code}`)
 
 The response body is a FHIR Bundle where each entry is a `Basic` resource as persisted by the EHR.
 
@@ -372,13 +377,15 @@ format) four sets of `Coding`s representing the SMART App State types (i.e.,
 
   * query, when the subject is the in-context app user
   * query, when the subject is the in-context patient
+  * query, when the subject is omitted
   * modify, when the subject is the in-context app user
   * modify, when the subject is the in-context patient
+  * modify, when the subject is omitted
 
-EHRs SHALL only associate `Coding`s with an app if the app is trusted to access
+EHRs SHALL only associate state codes with an app if the app is trusted to access
 those data. These decisions can be made out-of-band during or after the app
 registration process. A recommended default is to allow apps to register only
-`Codings` where the `system` matches the app's verified origin. For instance,
+state codes where the `system` matches the app's verified origin. For instance,
 if the EHR has verified that the app developer manages the origin
 `https://app.example.org`, the app could be associated with SMART App State
 types like `https://app.example.org|user-preferences` or

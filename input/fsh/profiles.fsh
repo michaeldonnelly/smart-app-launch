@@ -7,6 +7,6 @@ Description: """
 
     **See [App State capability](./app-state.html) for requirements, usage notes, and examples.**
 """
-* subject.reference 1..1
+* subject.reference 0..1
 * code.coding 1..1
 * extension.value[x] only string
