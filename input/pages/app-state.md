@@ -46,14 +46,12 @@ Notes](#design-notes)).
 The EHR's "App State FHIR endpoint" is defined as:
 
 1. The value in `smart_app_state_endpoint`, if present
-2. The EHR's primary FHIR endpoint, otherwise$smart-app-state-modify
+2. The EHR's primary FHIR endpoint, otherwise
 
 
 #### Example discovery document
 
-Assume a FHIR server with base URL `https://ehr.example.org/fhir`.
-
-The discovery document at
+Consider a FHIR server with base URL `https://ehr.example.org/fhir`. The discovery document at
 `https://ehr.example.org/fhir/.well-known/smart-configuration` might include:
 
 ```js
@@ -62,7 +60,7 @@ The discovery document at
     "smart-app-state",
     // <other capabilities snipped>
   ],
-  smart_app_state_endpoint: "https://ehr.example.org/appstate/fhir"
+  "smart_app_state_endpoint": "https://ehr.example.org/appstate/fhir"
   // <other properties snipped>
 }
 ```
@@ -74,8 +72,8 @@ The EHR's App State FHIR endpoint SHALL provide support for:
 2. `POST /Basic` requiring the presence of `If-Match` to prevent contention
 2. `PUT /Basic/[id]` requiring the presence of `If-Match` to prevent contention
 2. `DELETE /Basic/[id]` requiring the presence of `If-Match` to prevent contention
-1. `GET /Basic?code={}`
-1. `GET /Basic?subject={}&code={}`
+1. `GET /Basic?code={}&subject={}`
+1. `GET /Basic?code={}&subject:missing=true`
 
 ### Managing app state (CRUDS)
 
@@ -86,8 +84,8 @@ FHIR Resource storage space.
 App State is always assoiated with a "state code" (`Basic.code.coding`) and
 optionally associated with a subject (`Basic.subject`).
 
-EHRs SHALL allow at least one `smart-app-state` resource per state code, and at
-least one `smart-app-state` resource per (state code, subject) tuple. EHRs
+EHRs SHALL allow at least one `smart-app-state` resource per state code (i.e., for global configuration data), and at
+least one `smart-app-state` resource per (state code, subject) tuple (i.e., for subject-level data). EHRs
 SHOULD describe applicable limits in their developer documentation.
 
 EHRs SHOULD retain app state data for as long as the originating app remains
