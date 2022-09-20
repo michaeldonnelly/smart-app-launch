@@ -391,20 +391,20 @@ an Authorization header. Every App State request SHALL include an Authorization
 header with an access token issued by the EHR's authorization server. 
 
 This means the EHR tracks (e.g., in some internal, implementation-specific
-format) four sets of `Coding`s representing the SMART App State types (i.e.,
-`Basic.code.coding`) that the app is allowed to
+format) the SMART App State types (i.e.,
+`Basic.code.coding` values) that the app is allowed to
 
   * query, when the subject is the in-context app user
   * query, when the subject is the in-context patient
   * query, when the subject is omitted
   * modify, when the subject is the in-context app user
   * modify, when the subject is the in-context patient
-  * modify, when the subject is omitted
+  * modify, when the subject is omitted (this should be limited to administration applications or services)
 
 EHRs SHALL only associate state codes with an app if the app is trusted to access
 those data. These decisions can be made out-of-band during or after the app
 registration process. A recommended default is to allow apps to register only
-state codes where the `system` matches the app's verified origin. For instance,
+state types where the `system` matches the app's verified origin. For instance,
 if the EHR has verified that the app developer manages the origin
 `https://app.example.org`, the app could be associated with SMART App State
 types like `https://app.example.org|user-preferences` or
@@ -490,7 +490,7 @@ design:
   concepts).
 
 
-One design goal could not be met with the core FHIR REST API:
+One design goal could not be fully met with the core FHIR REST API:
 
 * Ensure that requests can be authorized "statically", i.e. based on the access
   token and request content alone, prior to querying a data store. For example,
