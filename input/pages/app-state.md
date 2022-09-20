@@ -98,7 +98,7 @@ To create app state, an app submits to the EHR's App State endpoint:
 
     POST /Basic/[id]
 
-The request body is a `Basic` resource to `/Basic` where:
+The request body is a `Basic` resource where:
 
 1. Total resource size as serialized in the POST body SHALL NOT exceed 256KB unless the EHR's documentation establishes a higher limit
 2. `Basic.id` SHALL NOT be included
